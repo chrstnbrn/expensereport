@@ -1,71 +1,79 @@
 // vi: filetype=cs
 open System
 
-type ExpenseType =
+type Expense(expenseType: ExpenseType, amount: int) =
+    member this.ExpenseType = expenseType
+    member this.Amount = amount
+    with
+        static member Breakfast amount = Expense(BREAKFAST, amount)
+        static member Lunch amount = Expense(LUNCH, amount)
+        static member Dinner amount = Expense(DINNER, amount)
+        static member CarRental amount = Expense(CAR_RENTAL, amount)
+
+        member this.GetName() =
+            match this.ExpenseType with
+            | DINNER -> "Dinner"
+            | BREAKFAST -> "Breakfast"
+            | CAR_RENTAL -> "Car Rental"
+            | LUNCH -> "Lunch"
+
+        member private this.GetLimit() =
+            match this.ExpenseType with
+            | BREAKFAST -> Some 1000
+            | LUNCH -> Some 2000
+            | DINNER -> Some 5000
+            | _ -> None
+
+        member this.GetIsOverLimit() =
+            let limit = this.GetLimit()
+            limit.IsSome && this.Amount > limit.Value
+
+        member this.IsMeal() =
+            let mealTypes = [ DINNER; BREAKFAST; LUNCH ]
+            Seq.contains this.ExpenseType mealTypes
+
+and ExpenseType =
     | DINNER
     | BREAKFAST
     | CAR_RENTAL
     | LUNCH
 
-type Expense(expenseType: ExpenseType, amount: int) =
-    member this.expenseType = expenseType
-    member this.amount = amount
-
-type ExpenseReportExpense =
-    { Name: string
-      Amount: int
-      IsOverLimit: bool }
-
 type ExpenseReport =
     { Date: DateTime
       MealExpenses: int
       TotalExpenses: int
-      Expenses: ExpenseReportExpense seq }
+      Entries: ExpenseReportEntry seq }
 
-let getExpenseName (expense: Expense) =
-    match expense.expenseType with
-    | DINNER -> "Dinner"
-    | BREAKFAST -> "Breakfast"
-    | CAR_RENTAL -> "Car Rental"
-    | LUNCH -> "Lunch"
+and ExpenseReportEntry =
+    { Name: string
+      Amount: int
+      IsOverLimit: bool }
 
-let getLimit expenseType =
-    match expenseType with
-    | BREAKFAST -> Some 1000
-    | LUNCH -> Some 2000
-    | DINNER -> Some 5000
-    | _ -> None
+type ExpenseReport with
+    static member Create(expenses: seq<Expense>) : ExpenseReport =
+        let getExpenseReportEntry (expense: Expense) =
+            { Name = expense.GetName()
+              Amount = expense.Amount
+              IsOverLimit = expense.GetIsOverLimit() }
 
-let getIsOverLimit (expense: Expense) =
-    let limit = getLimit expense.expenseType
-    limit.IsSome && expense.amount > limit.Value
+        let getAmount (expense: Expense) = expense.Amount
+        let getExpenseSum = Seq.sumBy getAmount
 
-let getExpenseReportExpense (expense: Expense) =
-    { Name = getExpenseName expense
-      Amount = expense.amount
-      IsOverLimit = getIsOverLimit expense }
+        let getMealExpenseSum (expenses: Expense seq) =
+            expenses
+            |> Seq.filter (fun x -> x.IsMeal())
+            |> getExpenseSum
 
-let isMealExpense (expense: Expense) =
-    let mealTypes = [ DINNER; BREAKFAST; LUNCH ]
-    Seq.contains expense.expenseType mealTypes
-
-let getAmount (expense: Expense) = expense.amount
-let getExpenseSum = Seq.sumBy getAmount
-
-let getMealExpenseSum =
-    Seq.filter isMealExpense >> getExpenseSum
-
-let getExpenseReport (expenses: seq<Expense>) : ExpenseReport =
-    { Date = DateTime.Now
-      MealExpenses = getMealExpenseSum expenses
-      TotalExpenses = getExpenseSum expenses
-      Expenses = Seq.map getExpenseReportExpense expenses }
+        { Date = DateTime.Now
+          MealExpenses = getMealExpenseSum expenses
+          TotalExpenses = getExpenseSum expenses
+          Entries = Seq.map getExpenseReportEntry expenses }
 
 let printReport (expenses: seq<Expense>) =
-    let expenseReport = getExpenseReport expenses
+    let expenseReport = ExpenseReport.Create(expenses)
     printfn "Expense Report: %s" (expenseReport.Date.ToString())
 
-    for expense in expenseReport.Expenses do
+    for expense in expenseReport.Entries do
         let mealOverExpensesMarker = if expense.IsOverLimit then "X" else " "
         printfn "%s\t%d\t%s" expense.Name expense.Amount mealOverExpensesMarker
 
@@ -74,10 +82,10 @@ let printReport (expenses: seq<Expense>) =
 
 [<EntryPoint>]
 let main argv =
-    printReport [ Expense(DINNER, 5000)
-                  Expense(DINNER, 5001)
-                  Expense(BREAKFAST, 1000)
-                  Expense(BREAKFAST, 1001)
-                  Expense(CAR_RENTAL, 4) ]
+    printReport [ Expense.Dinner(5000)
+                  Expense.Dinner(5001)
+                  Expense.Breakfast(1000)
+                  Expense.Breakfast(1001)
+                  Expense.CarRental(4) ]
 
     0
