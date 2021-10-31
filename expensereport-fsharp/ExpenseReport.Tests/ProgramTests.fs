@@ -5,18 +5,20 @@ open Program
 open Xunit
 
 [<Fact>]
-let ``Report has current date`` () =
+let ``Report has the specified date`` () =
     let expenses = Seq.empty
+    let date = DateTime(2021, 10, 31, 22, 0, 0)
 
-    let actual = ExpenseReport.Create(expenses)
+    let actual = ExpenseReport.create expenses date
 
-    Assert.True(Math.Abs((actual.Date - DateTime.Now).TotalMilliseconds) < 10.0)
+    Assert.Equal(date, actual.Date)
 
 [<Fact>]
 let ``Report is empty if there are no expenses`` () =
     let expenses = Seq.empty
+    let date = DateTime(2021, 10, 31, 22, 0, 0)
 
-    let actual = ExpenseReport.Create(expenses)
+    let actual = ExpenseReport.create expenses date
 
     Assert.Empty(actual.Entries)
     Assert.Equal(0, actual.MealExpenses)
@@ -31,9 +33,11 @@ let ``Report for multiple expenses`` () =
           Expense.CarRental(400)
           Expense.Lunch(500) ]
 
-    let actual = ExpenseReport.Create(expenses)
+    let date = DateTime(2021, 10, 31, 22, 0, 0)
 
-    Assert.Equal<ExpenseReportEntry>(
+    let actual = ExpenseReport.create expenses date
+
+    let expectedEntries: ExpenseReport.Entry array =
         [| { Name = "Breakfast"
              Amount = 100
              IsOverLimit = false }
@@ -48,65 +52,71 @@ let ``Report for multiple expenses`` () =
              IsOverLimit = false }
            { Name = "Lunch"
              Amount = 500
-             IsOverLimit = false } |],
-        actual.Entries
-    )
+             IsOverLimit = false } |]
 
+    Assert.Equal(expectedEntries, actual.Entries)
     Assert.Equal(1100, actual.MealExpenses)
     Assert.Equal(1500, actual.TotalExpenses)
 
 [<Fact>]
 let ``Report does not show breakfast for 1000 as over limit`` () =
     let expenses = [ Expense.Breakfast(1000) ]
+    let date = DateTime(2021, 10, 31, 22, 0, 0)
 
-    let actual = ExpenseReport.Create(expenses)
+    let actual = ExpenseReport.create expenses date
 
     Assert.False((Seq.head actual.Entries).IsOverLimit)
 
 [<Fact>]
 let ``Report shows breakfast for 1001 as over limit`` () =
     let expenses = [ Expense.Breakfast(1001) ]
+    let date = DateTime(2021, 10, 31, 22, 0, 0)
 
-    let actual = ExpenseReport.Create(expenses)
+    let actual = ExpenseReport.create expenses date
 
     Assert.True((Seq.head actual.Entries).IsOverLimit)
 
 [<Fact>]
 let ``Report does not show dinner for 5000 as over limit`` () =
     let expenses = [ Expense.Dinner(5000) ]
+    let date = DateTime(2021, 10, 31, 22, 0, 0)
 
-    let actual = ExpenseReport.Create(expenses)
+    let actual = ExpenseReport.create expenses date
 
     Assert.False((Seq.head actual.Entries).IsOverLimit)
 
 [<Fact>]
 let ``Report shows dinner for 5001 as over limit`` () =
     let expenses = [ Expense.Dinner(5001) ]
+    let date = DateTime(2021, 10, 31, 22, 0, 0)
 
-    let actual = ExpenseReport.Create(expenses)
+    let actual = ExpenseReport.create expenses date
 
     Assert.True((Seq.head actual.Entries).IsOverLimit)
 
 [<Fact>]
 let ``Report does not show lunch for 2000 as over limit`` () =
     let expenses = [ Expense.Lunch(2000) ]
+    let date = DateTime(2021, 10, 31, 22, 0, 0)
 
-    let actual = ExpenseReport.Create(expenses)
+    let actual = ExpenseReport.create expenses date
 
     Assert.False((Seq.head actual.Entries).IsOverLimit)
 
 [<Fact>]
 let ``Report shows lunch for 2001 as over limit`` () =
     let expenses = [ Expense.Lunch(2001) ]
+    let date = DateTime(2021, 10, 31, 22, 0, 0)
 
-    let actual = ExpenseReport.Create(expenses)
+    let actual = ExpenseReport.create expenses date
 
     Assert.True((Seq.head actual.Entries).IsOverLimit)
 
 [<Fact>]
 let ``Report does not show car rental for 1 mio as over limit`` () =
     let expenses = [ Expense.CarRental(1_000_000) ]
+    let date = DateTime(2021, 10, 31, 22, 0, 0)
 
-    let actual = ExpenseReport.Create(expenses)
+    let actual = ExpenseReport.create expenses date
 
     Assert.False((Seq.head actual.Entries).IsOverLimit)
